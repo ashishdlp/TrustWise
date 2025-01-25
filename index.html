@@ -49,7 +49,8 @@
                         <tr class="bg-gray-200">
                             <th class="p-2 text-left">Timestamp</th>
                             <th class="p-2 text-left">Text</th>
-                            <th class="p-2 text-left">Gibberish</th>
+                            <th class="p-2 text-left">Gibberish Categories</th>
+                            <th class="p-2 text-left">Final Category</th>
                             <th class="p-2 text-left">Education</th>
                         </tr>
                     </thead>
@@ -65,7 +66,7 @@
             data: {
                 labels: [],
                 datasets: [
-                    { label: 'Gibberish', data: [], borderColor: 'blue' },
+                    { label: 'Final Gibberish', data: [], borderColor: 'blue' },
                     { label: 'Education', data: [], borderColor: 'green' }
                 ]
             },
@@ -84,15 +85,21 @@
             history.forEach(entry => {
                 const row = historyTable.insertRow();
                 row.innerHTML = `
-                    <td>${new Date(entry.timestamp).toLocaleString()}</td>
-                    <td>${entry.input_text}</td>
-                    <td>${(entry.gibberish_gibberish * 100).toFixed(2)}%</td>
-                    <td>${(entry.education_class_1 * 100).toFixed(2)}%</td>
+                    <td>${new Date(entry.Timestamp).toLocaleString()}</td>
+                    <td>${entry.InputText}</td>
+                    <td>
+                        Clean: ${(entry.Gibberish_Clean * 100).toFixed(2)}%<br>
+                        Mild Gibberish: ${(entry.Gibberish_MildGibberish * 100).toFixed(2)}%<br>
+                        Noise: ${(entry.Gibberish_Noise * 100).toFixed(2)}%<br>
+                        Word Salad: ${(entry.Gibberish_WordSalad * 100).toFixed(2)}%
+                    </td>
+                    <td>${entry.Gibberish_FinalCategory} (${(entry.Gibberish_FinalScore * 100).toFixed(2)}%)</td>
+                    <td>${(entry.Education_Score * 100).toFixed(2)}%</td>
                 `;
 
-                chartLabels.push(new Date(entry.timestamp).toLocaleTimeString());
-                gibberishData.push(entry.gibberish_gibberish * 100);
-                educationData.push(entry.education_class_1 * 100);
+                chartLabels.push(new Date(entry.Timestamp).toLocaleTimeString());
+                gibberishData.push(entry.Gibberish_FinalScore * 100);
+                educationData.push(entry.Education_Score * 100);
             });
 
             scoreChart.data.labels = chartLabels;
