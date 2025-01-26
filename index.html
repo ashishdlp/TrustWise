@@ -98,7 +98,7 @@
             </h2>
             <div class="overflow-x-auto">
                 <table id="historyTable" class="w-full">
-                    <thead>
+                    <!-- <thead>
                         <tr class="border-b border-gray-200">
                             <th class="p-3 text-left text-gray-600 font-semibold">Time</th>
                             <th class="p-3 text-left text-gray-600 font-semibold">Text</th>
@@ -106,7 +106,17 @@
                             <th class="p-3 text-left text-gray-600 font-semibold">Gibberish</th>
                             <th class="p-3 text-left text-gray-600 font-semibold">Education</th>
                         </tr>
+                    </thead> -->
+                    <thead>
+                        <tr class="border-b border-gray-200">
+                            <th class="p-3 text-left text-gray-600 font-semibold">Time</th>
+                            <th class="p-3 text-left text-gray-600 font-semibold">Text</th>
+                            <th class="p-3 text-left text-gray-600 font-semibold">Final Category</th>
+                            <th class="p-3 text-left text-gray-600 font-semibold">Gibberish Scores</th>
+                            <th class="p-3 text-left text-gray-600 font-semibold">Education</th>
+                        </tr>
                     </thead>
+
                     <tbody id="historyTableBody"></tbody>
                 </table>
             </div>
@@ -173,7 +183,7 @@
                                 return [
                                     `${datasetLabel}: ${value.toFixed(1)}%`,
                                     // `Input Text: ${inputText}`,
-                                    `Gibberish Class: ${gibberishClass.charAt(0).toUpperCase() + gibberishClass.slice(1)}`
+                                    `Gibberish Class: ${gibberishClass.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}`
                                 ];
                             } else {
                                 return [
@@ -218,24 +228,65 @@
         updateCharts(history);
     }
 
+    // function updateHistoryTable(history) {
+    //     const tbody = document.getElementById('historyTableBody');
+    //     tbody.innerHTML = history.map(entry => `
+    //         <tr class="border-b border-gray-100 hover:bg-gray-50 transition duration-150">
+    //             <td class="p-3 text-gray-700">${new Date(entry.Timestamp).toLocaleString()}</td>
+    //             <td class="p-3 text-gray-700">
+    //                 <div class="max-w-xs truncate">${entry.InputText}</div>
+    //             </td>
+    //             <td class="p-3">
+    //                 <span class="px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(entry.Gibberish_FinalCategory)}">
+    //                     ${entry.Gibberish_FinalCategory}
+    //                 </span>
+    //             </td>
+    //             <td class="p-3 text-gray-700">${(entry.Gibberish_FinalScore * 100).toFixed(1)}%</td>
+    //             <td class="p-3 text-gray-700">${(entry.Education_Score * 100).toFixed(1)}%</td>
+    //         </tr>
+    //     `).join('');
+    // }
+
     function updateHistoryTable(history) {
-        const tbody = document.getElementById('historyTableBody');
-        tbody.innerHTML = history.map(entry => `
-            <tr class="border-b border-gray-100 hover:bg-gray-50 transition duration-150">
-                <td class="p-3 text-gray-700">${new Date(entry.Timestamp).toLocaleString()}</td>
-                <td class="p-3 text-gray-700">
-                    <div class="max-w-xs truncate">${entry.InputText}</div>
-                </td>
-                <td class="p-3">
-                    <span class="px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(entry.Gibberish_FinalCategory)}">
-                        ${entry.Gibberish_FinalCategory}
-                    </span>
-                </td>
-                <td class="p-3 text-gray-700">${(entry.Gibberish_FinalScore * 100).toFixed(1)}%</td>
-                <td class="p-3 text-gray-700">${(entry.Education_Score * 100).toFixed(1)}%</td>
-            </tr>
-        `).join('');
-    }
+    const tbody = document.getElementById('historyTableBody');
+    tbody.innerHTML = history.map(entry => `
+        <tr class="border-b border-gray-100 hover:bg-gray-50 transition duration-150">
+            <td class="p-3 text-gray-700">${new Date(entry.Timestamp).toLocaleString()}</td>
+            <td class="p-3 text-gray-700">
+                <div class="max-w-xs truncate">${entry.InputText}</div>
+            </td>
+            <td class="p-3">
+                <span class="px-5 py-5 text-xs font-bold rounded-full ${getCategoryColor(entry.Gibberish_FinalCategory)}">
+                    ${entry.Gibberish_FinalCategory.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
+                </span>
+            </td>
+            <td class="p-3 text-gray-700">
+                <div class="space-y-1">
+                    ${Object.entries({
+                        Clean: entry.Gibberish_Clean,
+                        MildGibberish: entry.Gibberish_MildGibberish,
+                        Noise: entry.Gibberish_Noise,
+                        WordSalad: entry.Gibberish_WordSalad
+                    }).map(([category, score]) => `
+                        <div class="flex items-center">
+                            <div class="w-24 text-sm text-gray-600">${category}</div>
+                            <div class="flex-1">
+                                <div class="h-2 bg-gray-200 rounded-full">
+                                    <div class="h-full bg-indigo-600 rounded-full transition-all duration-500"
+                                         style="width: ${score * 100}%"></div>
+                                </div>
+                            </div>
+                            <div class="w-16 text-right text-sm font-medium text-gray-800">
+                                ${(score * 100).toFixed(1)}%
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </td>
+            <td class="w-16 text-center text-sm font-medium text-gray-800">${(entry.Education_Score * 100).toFixed(1)}%</td>
+        </tr>
+    `).join('');
+}
 
     function getCategoryColor(category) {
         const colors = {
