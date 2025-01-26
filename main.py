@@ -7,8 +7,17 @@ import torch
 import torch.nn.functional as F
 import sqlite3
 from datetime import datetime, timedelta
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.openapi.utils import get_openapi
 
-app = FastAPI()
+app = FastAPI(
+    docs_url=None,  # Disable Swagger UI
+    redoc_url=None,  # Disable ReDoc
+    openapi_url=None,  # Disable OpenAPI schema
+    title="Text Analysis Dashboard",
+    description="A secure text analysis service",
+    version="1.0.0"
+)
 
 # Serve static files
 app.mount("/static", StaticFiles(directory="."), name="static")
@@ -148,11 +157,11 @@ def log_to_database(text: str, scores: dict):
 async def startup_event():
     ensure_database()
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 async def read_index():
     return FileResponse("index.html")
 
-@app.post("/score_text/")
+@app.post("/score_text/", include_in_schema=False)
 async def score_text_endpoint(text_input: TextInput):
     try:
         scores = score_text(text_input.text)
@@ -167,29 +176,18 @@ async def score_text_endpoint(text_input: TextInput):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/history")
-async def get_scoring_history(time_range: str = "all"):
+@app.get("/history", include_in_schema=False)
+async def get_scoring_history(start_date: str = None, end_date: str = None):
     try:
         conn = sqlite3.connect('text_analysis.db')
         cursor = conn.cursor()
         
-        # Calculate time ranges
-        now = datetime.now()
-        time_filters = {
-            "24h": (now - timedelta(hours=24), now),
-            "7d": (now - timedelta(days=7), now),
-            "30d": (now - timedelta(days=30), now),
-            "all": (None, None)
-        }
-        
-        start_time, end_time = time_filters.get(time_range, (None, None))
-        
         query = "SELECT * FROM text_scores"
         params = []
         
-        if start_time and end_time:
+        if start_date and end_date:
             query += " WHERE Timestamp BETWEEN ? AND ?"
-            params.extend([start_time, end_time])
+            params.extend([start_date, end_date])
             
         query += " ORDER BY Timestamp DESC LIMIT 100"
         
@@ -200,3 +198,8 @@ async def get_scoring_history(time_range: str = "all"):
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Add a catch-all route for undefined endpoints
+@app.api_route("/{path_name:path}", methods=["GET", "POST", "PUT", "DELETE"], include_in_schema=False)
+async def catch_all(path_name: str):
+    raise HTTPException(status_code=404, detail="Resource not found")

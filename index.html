@@ -84,12 +84,19 @@
                     </svg>
                     Score Trends
                 </h2>
-                <select id="timeRangeSelector" class="bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                    <option value="24h">Last 24 Hours</option>
-                    <option value="7d">Last 7 Days</option>
-                    <option value="30d">Last 30 Days</option>
-                    <option value="all">All Time</option>
-                </select>
+                <div class="flex gap-4 items-center">
+                    <input 
+                        type="date" 
+                        id="startDate" 
+                        class="bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    >
+                    <span class="text-gray-500">to</span>
+                    <input 
+                        type="date" 
+                        id="endDate" 
+                        class="bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    >
+                </div>
             </div>
             <div class="chart-container">
                 <canvas id="scoreChart"></canvas>
@@ -230,8 +237,18 @@
     });
 
     async function fetchHistory() {
-        const timeRange = document.getElementById('timeRangeSelector').value;
-        const response = await fetch(`/history?time_range=${timeRange}`);
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        // Add one day to endDate to include the full end date
+        const adjustedEndDate = endDate ? new Date(new Date(endDate).getTime() + 86400000).toISOString().split('T')[0] : '';
+        
+        const queryParams = new URLSearchParams({
+            start_date: startDate,
+            end_date: adjustedEndDate
+        }).toString();
+        
+        const response = await fetch(`/history?${queryParams}`);
         const history = await response.json();
         updateHistoryTable(history);
         updateCharts(history);
@@ -381,10 +398,22 @@
         }
     });
 
-    // Add event listener for time range selector
-    document.getElementById('timeRangeSelector').addEventListener('change', fetchHistory);
+    // Set default date range (last 7 days)
+    function setDefaultDateRange() {
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 7);
+        
+        document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+        document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+    }
 
-    // Initial history load
+    // Add event listeners for date inputs
+    document.getElementById('startDate').addEventListener('change', fetchHistory);
+    document.getElementById('endDate').addEventListener('change', fetchHistory);
+
+    // Initialize with default date range
+    setDefaultDateRange();
     fetchHistory();
 </script>
 </body>
