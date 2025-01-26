@@ -6,7 +6,7 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
 import torch.nn.functional as F
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = FastAPI()
 
@@ -168,11 +168,32 @@ async def score_text_endpoint(text_input: TextInput):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/history")
-async def get_scoring_history():
+async def get_scoring_history(time_range: str = "all"):
     try:
         conn = sqlite3.connect('text_analysis.db')
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM text_scores ORDER BY Timestamp DESC LIMIT 100")
+        
+        # Calculate time ranges
+        now = datetime.now()
+        time_filters = {
+            "24h": (now - timedelta(hours=24), now),
+            "7d": (now - timedelta(days=7), now),
+            "30d": (now - timedelta(days=30), now),
+            "all": (None, None)
+        }
+        
+        start_time, end_time = time_filters.get(time_range, (None, None))
+        
+        query = "SELECT * FROM text_scores"
+        params = []
+        
+        if start_time and end_time:
+            query += " WHERE Timestamp BETWEEN ? AND ?"
+            params.extend([start_time, end_time])
+            
+        query += " ORDER BY Timestamp DESC LIMIT 100"
+        
+        cursor.execute(query, params)
         columns = [column[0] for column in cursor.description]
         results = [dict(zip(columns, row)) for row in cursor.fetchall()]
         conn.close()
