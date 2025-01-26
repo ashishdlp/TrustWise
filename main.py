@@ -160,7 +160,7 @@ async def score_text_endpoint(text_input: TextInput):
         return {
             "received_text": text_input.text, 
             "scores": {
-                "Gibberish": {k: scores["Gibberish"][k] for k in scores["Gibberish"]},
+                "Gibberish": {k.title(): scores["Gibberish"][k] for k in scores["Gibberish"]},
                 "Education": scores["Education"]
             }
         }
