@@ -45,6 +45,36 @@ def ensure_database():
     conn.commit()
     conn.close()
 
+# # def score_text(text: str):
+#     # Gibberish Score
+#     gibberish_inputs = gibberish_tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
+#     with torch.no_grad():
+#         gibberish_outputs = gibberish_model(**gibberish_inputs)
+#     gibberish_probs = F.softmax(gibberish_outputs.logits, dim=-1)
+    
+#     # Get all gibberish scores
+#     gibberish_scores = {
+#         label: gibberish_probs[0][idx].item() 
+#         for label, idx in gibberish_model.config.label2id.items()
+#     }
+    
+#     # Find the category with the highest score
+#     highest_gibberish_category = max(gibberish_scores, key=gibberish_scores.get)
+#     gibberish_result = {highest_gibberish_category: gibberish_scores[highest_gibberish_category]}
+
+#     # Education Score
+#     education_inputs = education_tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
+#     with torch.no_grad():
+#         education_outputs = education_model(**education_inputs)
+#     education_probs = F.softmax(education_outputs.logits, dim=-1)
+#     education_scores = {f"Class {idx}": score.item() for idx, score in enumerate(education_probs[0])}
+
+#     return {
+#         "Gibberish": gibberish_scores,  # Return full scores
+#         "Education": education_scores,
+#     }
+
+
 def score_text(text: str):
     # Gibberish Score
     gibberish_inputs = gibberish_tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
@@ -66,13 +96,18 @@ def score_text(text: str):
     education_inputs = education_tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
     with torch.no_grad():
         education_outputs = education_model(**education_inputs)
-    education_probs = F.softmax(education_outputs.logits, dim=-1)
-    education_scores = {f"Class {idx}": score.item() for idx, score in enumerate(education_probs[0])}
+    
+    # Change softmax to sigmoid for education model
+    education_probs = torch.sigmoid(education_outputs.logits)
+    
+    # Assuming the model outputs a single score for binary classification
+    education_score = education_probs[0].item()  # If it's a single output
 
     return {
         "Gibberish": gibberish_scores,  # Return full scores
-        "Education": education_scores,
+        "Education": {"Class 1": education_score},  # Return the sigmoid score
     }
+
 
 def log_to_database(text: str, scores: dict):
     ensure_database()  # Ensure database exists before logging

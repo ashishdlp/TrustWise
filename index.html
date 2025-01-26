@@ -6,52 +6,61 @@
     <title>Text Analysis Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #f4f4f4;
+            color: #333;
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
-    <div class="container mx-auto p-6">
-        <h1 class="text-3xl font-bold mb-6 text-center">Text Analysis Dashboard</h1>
-        
+<body>
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Text Analysis Dashboard</h1>
+            <p class="text-gray-600 mt-2">Analyze text quality and educational potential</p>
+        </header>
+
         <div class="grid md:grid-cols-2 gap-6">
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h2 class="text-xl font-semibold mb-4">Text Scoring</h2>
+            <div class="bg-white shadow-md rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Text Scoring</h2>
                 <form id="scoringForm" class="space-y-4">
                     <textarea 
                         id="textInput" 
                         rows="4" 
-                        class="w-full p-3 border border-gray-300 rounded-md"
+                        class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:outline-none"
                         placeholder="Enter text to analyze..."
                     ></textarea>
                     <button 
                         type="submit" 
-                        class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600"
+                        class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition duration-300"
                     >
                         Analyze Text
                     </button>
                 </form>
 
                 <div id="resultsContainer" class="mt-4 hidden">
-                    <h3 class="font-bold mb-2">Scoring Results</h3>
-                    <div id="scoreDetails"></div>
+                    <h3 class="font-bold mb-2 text-gray-700">Scoring Results</h3>
+                    <div id="scoreDetails" class="space-y-2"></div>
                 </div>
             </div>
 
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h2 class="text-xl font-semibold mb-4">Score Trends</h2>
-                <canvas id="scoreChart"></canvas>
+            <div class="bg-white shadow-md rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Score Trends</h2>
+                <canvas id="scoreChart" class="w-full"></canvas>
             </div>
         </div>
 
-        <div class="mt-6 bg-white p-6 rounded-lg shadow">
-            <h2 class="text-xl font-semibold mb-4">Analysis History</h2>
+        <div class="mt-6 bg-white shadow-md rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Analysis History</h2>
             <div class="overflow-x-auto">
                 <table id="historyTable" class="w-full text-sm">
                     <thead>
-                        <tr class="bg-gray-200">
-                            <th class="p-2 text-left">Timestamp</th>
-                            <th class="p-2 text-left">Text</th>
-                            <th class="p-2 text-left">Gibberish Categories</th>
-                            <th class="p-2 text-left">Final Category</th>
-                            <th class="p-2 text-left">Education</th>
+                        <tr class="bg-gray-100">
+                            <th class="p-3 text-left text-gray-600">Timestamp</th>
+                            <th class="p-3 text-left text-gray-600">Input Text</th>
+                            <th class="p-3 text-left text-gray-600">Gibberish Categories</th>
+                            <th class="p-3 text-left text-gray-600">Final Category</th>
+                            <th class="p-3 text-left text-gray-600">Education Score</th>
                         </tr>
                     </thead>
                     <tbody id="historyTableBody"></tbody>
@@ -66,47 +75,104 @@
             data: {
                 labels: [],
                 datasets: [
-                    { label: 'Final Gibberish', data: [], borderColor: 'blue' },
-                    { label: 'Education', data: [], borderColor: 'green' }
+                    { 
+                        label: 'Final Gibberish', 
+                        data: [], 
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)'
+                    },
+                    { 
+                        label: 'Education', 
+                        data: [], 
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)'
+                    }
                 ]
             },
-            options: { responsive: true }
+            options: { 
+                responsive: true,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#4B5563'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#6B7280'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#6B7280'
+                        }
+                    }
+                }
+            }
         });
 
         async function fetchHistory() {
-            const response = await fetch('/history');
-            const history = await response.json();
-            const historyTable = document.getElementById('historyTableBody');
-            const chartLabels = [];
-            const gibberishData = [];
-            const educationData = [];
+    const response = await fetch('/history');
+    const history = await response.json();
+    const historyTable = document.getElementById('historyTableBody');
+    const chartLabels = [];
+    const gibberishData = [];
+    const educationData = [];
+    const textInputs = [];  // Store text inputs for tooltips
 
-            historyTable.innerHTML = '';
-            history.forEach(entry => {
-                const row = historyTable.insertRow();
-                row.innerHTML = `
-                    <td>${new Date(entry.Timestamp).toLocaleString()}</td>
-                    <td>${entry.InputText}</td>
-                    <td>
-                        Clean: ${(entry.Gibberish_Clean * 100).toFixed(2)}%<br>
-                        Mild Gibberish: ${(entry.Gibberish_MildGibberish * 100).toFixed(2)}%<br>
-                        Noise: ${(entry.Gibberish_Noise * 100).toFixed(2)}%<br>
-                        Word Salad: ${(entry.Gibberish_WordSalad * 100).toFixed(2)}%
-                    </td>
-                    <td>${entry.Gibberish_FinalCategory} (${(entry.Gibberish_FinalScore * 100).toFixed(2)}%)</td>
-                    <td>${(entry.Education_Score * 100).toFixed(2)}%</td>
-                `;
+    historyTable.innerHTML = '';
+    history.forEach(entry => {
+        const row = historyTable.insertRow();
+        row.className = 'border-b border-gray-200';
+        row.innerHTML = `
+            <td class="p-3 text-gray-700">${new Date(entry.Timestamp).toLocaleString()}</td>
+            <td class="p-3 text-gray-700">${entry.InputText}</td>
+            <td class="p-3 text-gray-700">
+                <div class="space-y-1">
+                    <div>Clean: <span class="text-blue-600">${(entry.Gibberish_Clean * 100).toFixed(2)}%</span></div>
+                    <div>Mild Gibberish: <span class="text-yellow-600">${(entry.Gibberish_MildGibberish * 100).toFixed(2)}%</span></div>
+                    <div>Noise: <span class="text-red-600">${(entry.Gibberish_Noise * 100).toFixed(2)}%</span></div>
+                    <div>Word Salad: <span class="text-purple-600">${(entry.Gibberish_WordSalad * 100).toFixed(2)}%</span></div>
+                </div>
+            </td>
+            <td class="p-3 text-gray-700">
+                <span class="font-semibold text-blue-700">${entry.Gibberish_FinalCategory}</span>
+                <div class="text-sm text-gray-500">${(entry.Gibberish_FinalScore * 100).toFixed(2)}%</div>
+            </td>
+            <td class="p-3 text-gray-700">
+                <span class="text-green-700">${(entry.Education_Score * 100).toFixed(2)}%</span>
+            </td>
+        `;
 
-                chartLabels.push(new Date(entry.Timestamp).toLocaleTimeString());
-                gibberishData.push(entry.Gibberish_FinalScore * 100);
-                educationData.push(entry.Education_Score * 100);
-            });
+        chartLabels.push(entry.InputText);  // Use text input as label
+        gibberishData.push(entry.Gibberish_FinalScore * 100);
+        educationData.push(entry.Education_Score * 100);
+        textInputs.push(entry.InputText);  // Store text inputs for tooltips
+    });
 
-            scoreChart.data.labels = chartLabels;
-            scoreChart.data.datasets[0].data = gibberishData;
-            scoreChart.data.datasets[1].data = educationData;
-            scoreChart.update();
+    scoreChart.data.labels = chartLabels;
+    scoreChart.data.datasets[0].data = gibberishData;
+    scoreChart.data.datasets[1].data = educationData;
+    scoreChart.update();
+
+    // Custom tooltip to show text input on hover
+    scoreChart.options.plugins.tooltip = {
+        callbacks: {
+            title: function(context) {
+                return textInputs[context[0].dataIndex];  // Show text input on hover
+            },
+            label: function(context) {
+                const label = context.dataset.label || '';
+                const value = context.raw || 0;
+                return `${label}: ${value.toFixed(2)}%`;
+            }
         }
+    };
+    scoreChart.update();
+}
 
         document.getElementById('scoringForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -123,11 +189,14 @@
 
                 const data = await response.json();
                 scoreDetails.innerHTML = Object.entries(data.scores).map(([model, scores]) => `
-                    <div class="mb-2">
-                        <strong>${model} Scores:</strong>
-                        ${Object.entries(scores).map(([label, score]) => 
-                            `<div>${label}: ${(score * 100).toFixed(2)}%</div>`
-                        ).join('')}
+                    <div class="bg-gray-50 p-3 rounded-md">
+                        <strong class="text-gray-700 block mb-2">${model} Scores:</strong>
+                        ${Object.entries(scores).map(([label, score]) => `
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">${label}</span>
+                                <span class="text-blue-600 font-semibold">${(score * 100).toFixed(2)}%</span>
+                            </div>
+                        `).join('')}
                     </div>
                 `).join('');
 
