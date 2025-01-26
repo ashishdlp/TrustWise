@@ -22,17 +22,37 @@ app = FastAPI(
 # Serve static files
 app.mount("/static", StaticFiles(directory="."), name="static")
 
-# Load models and tokenizers
+# Model configurations
 gibberish_model = AutoModelForSequenceClassification.from_pretrained("wajidlinux99/gibberish-text-detector")
 gibberish_tokenizer = AutoTokenizer.from_pretrained("wajidlinux99/gibberish-text-detector")
 education_model = AutoModelForSequenceClassification.from_pretrained("HuggingFaceFW/fineweb-edu-classifier")
 education_tokenizer = AutoTokenizer.from_pretrained("HuggingFaceFW/fineweb-edu-classifier")
 
 class TextInput(BaseModel):
+    """
+    Pydantic model for text input validation.
+    
+    Attributes:
+        text (str): The input text to be analyzed
+    """
     text: str
 
 def ensure_database():
-    """Ensure the database and table exist with the correct schema."""
+    """
+    Creates the SQLite database and required table if they don't exist.
+    
+    Table Schema:
+    - PrimaryKey: Unique identifier for each record
+    - Timestamp: When the analysis was performed
+    - InputText: The text that was analyzed
+    - Gibberish_Clean: Score for clean text classification
+    - Gibberish_MildGibberish: Score for mild gibberish classification
+    - Gibberish_Noise: Score for noise classification
+    - Gibberish_WordSalad: Score for word salad classification
+    - Gibberish_FinalCategory: The highest scoring gibberish category
+    - Gibberish_FinalScore: The score for the final category
+    - Education_Score: Educational content score
+    """
     conn = sqlite3.connect('text_analysis.db')
     cursor = conn.cursor()
     
@@ -54,71 +74,69 @@ def ensure_database():
     conn.commit()
     conn.close()
 
-# # def score_text(text: str):
-#     # Gibberish Score
-#     gibberish_inputs = gibberish_tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
-#     with torch.no_grad():
-#         gibberish_outputs = gibberish_model(**gibberish_inputs)
-#     gibberish_probs = F.softmax(gibberish_outputs.logits, dim=-1)
-    
-#     # Get all gibberish scores
-#     gibberish_scores = {
-#         label: gibberish_probs[0][idx].item() 
-#         for label, idx in gibberish_model.config.label2id.items()
-#     }
-    
-#     # Find the category with the highest score
-#     highest_gibberish_category = max(gibberish_scores, key=gibberish_scores.get)
-#     gibberish_result = {highest_gibberish_category: gibberish_scores[highest_gibberish_category]}
-
-#     # Education Score
-#     education_inputs = education_tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
-#     with torch.no_grad():
-#         education_outputs = education_model(**education_inputs)
-#     education_probs = F.softmax(education_outputs.logits, dim=-1)
-#     education_scores = {f"Class {idx}": score.item() for idx, score in enumerate(education_probs[0])}
-
-#     return {
-#         "Gibberish": gibberish_scores,  # Return full scores
-#         "Education": education_scores,
-#     }
-
-
 def score_text(text: str):
-    # Gibberish Score
+    """
+    Analyzes input text using both gibberish and educational content models.
+    
+    Args:
+        text (str): The input text to analyze
+        
+    Returns:
+        dict: Contains two keys:
+            - 'Gibberish': Dict of scores for each gibberish category
+            - 'Education': Dict with binary classification score
+            
+    Example return value:
+    {
+        'Gibberish': {
+            'clean': 0.8,
+            'mild gibberish': 0.1,
+            'noise': 0.05,
+            'word salad': 0.05
+        },
+        'Education': {
+            'Class 1': 0.75
+        }
+    }
+    """
+    # Gibberish Analysis
     gibberish_inputs = gibberish_tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
     with torch.no_grad():
         gibberish_outputs = gibberish_model(**gibberish_inputs)
     gibberish_probs = F.softmax(gibberish_outputs.logits, dim=-1)
     
-    # Get all gibberish scores
+    # Calculate gibberish scores for each category
     gibberish_scores = {
         label: gibberish_probs[0][idx].item() 
         for label, idx in gibberish_model.config.label2id.items()
     }
     
-    # Find the category with the highest score
-    highest_gibberish_category = max(gibberish_scores, key=gibberish_scores.get)
-    gibberish_result = {highest_gibberish_category: gibberish_scores[highest_gibberish_category]}
-
-    # Education Score
+    # Educational Content Analysis
     education_inputs = education_tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
     with torch.no_grad():
         education_outputs = education_model(**education_inputs)
     
-    # Change softmax to sigmoid for education model
+    # Use sigmoid for binary classification
     education_probs = torch.sigmoid(education_outputs.logits)
-    
-    # Assuming the model outputs a single score for binary classification
-    education_score = education_probs[0].item()  # If it's a single output
+    education_score = education_probs[0].item()
 
     return {
-        "Gibberish": gibberish_scores,  # Return full scores
-        "Education": {"Class 1": education_score},  # Return the sigmoid score
+        "Gibberish": gibberish_scores,
+        "Education": {"Class 1": education_score},
     }
 
-
 def log_to_database(text: str, scores: dict):
+    """
+    Logs analysis results to the SQLite database.
+    
+    Args:
+        text (str): The analyzed text
+        scores (dict): Dictionary containing both gibberish and education scores
+        
+    Note:
+        The function automatically determines the final gibberish category
+        based on the highest score among all categories.
+    """
     ensure_database()  # Ensure database exists before logging
     
     conn = sqlite3.connect('text_analysis.db')
@@ -163,6 +181,18 @@ async def read_index():
 
 @app.post("/score_text/", include_in_schema=False)
 async def score_text_endpoint(text_input: TextInput):
+    """
+    Endpoint for text analysis.
+    
+    Args:
+        text_input (TextInput): Pydantic model containing the text to analyze
+        
+    Returns:
+        dict: Contains the original text and analysis scores
+        
+    Raises:
+        HTTPException: 500 error if analysis fails
+    """
     try:
         scores = score_text(text_input.text)
         log_to_database(text_input.text, scores)
@@ -178,6 +208,19 @@ async def score_text_endpoint(text_input: TextInput):
 
 @app.get("/history", include_in_schema=False)
 async def get_scoring_history(start_date: str = None, end_date: str = None):
+    """
+    Retrieves analysis history within the specified date range.
+    
+    Args:
+        start_date (str, optional): Start date in ISO format (YYYY-MM-DD)
+        end_date (str, optional): End date in ISO format (YYYY-MM-DD)
+        
+    Returns:
+        list: List of dictionaries containing analysis records
+        
+    Raises:
+        HTTPException: 500 error if database query fails
+    """
     try:
         conn = sqlite3.connect('text_analysis.db')
         cursor = conn.cursor()

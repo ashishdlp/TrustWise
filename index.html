@@ -139,7 +139,10 @@
     </div>
 
 <script>
-    // Initialize History Chart
+    /**
+     * Initializes the Chart.js line chart for displaying score trends
+     * @type {Chart}
+     */
     const scoreChart = new Chart(document.getElementById('scoreChart'), {
         type: 'line',
         data: {
@@ -236,6 +239,11 @@
         }
     });
 
+    /**
+     * Fetches analysis history from the server based on selected date range
+     * Updates both the history table and score chart with the fetched data
+     * @async
+     */
     async function fetchHistory() {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
@@ -254,66 +262,64 @@
         updateCharts(history);
     }
 
-    // function updateHistoryTable(history) {
-    //     const tbody = document.getElementById('historyTableBody');
-    //     tbody.innerHTML = history.map(entry => `
-    //         <tr class="border-b border-gray-100 hover:bg-gray-50 transition duration-150">
-    //             <td class="p-3 text-gray-700">${new Date(entry.Timestamp).toLocaleString()}</td>
-    //             <td class="p-3 text-gray-700">
-    //                 <div class="max-w-xs truncate">${entry.InputText}</div>
-    //             </td>
-    //             <td class="p-3">
-    //                 <span class="px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(entry.Gibberish_FinalCategory)}">
-    //                     ${entry.Gibberish_FinalCategory}
-    //                 </span>
-    //             </td>
-    //             <td class="p-3 text-gray-700">${(entry.Gibberish_FinalScore * 100).toFixed(1)}%</td>
-    //             <td class="p-3 text-gray-700">${(entry.Education_Score * 100).toFixed(1)}%</td>
-    //         </tr>
-    //     `).join('');
-    // }
-
+    /**
+     * Updates the history table with analysis results
+     * @param {Array} history - Array of analysis records
+     * @param {string} history[].Timestamp - Timestamp of the analysis
+     * @param {string} history[].InputText - Analyzed text
+     * @param {string} history[].Gibberish_FinalCategory - Final gibberish classification
+     * @param {number} history[].Gibberish_Clean - Clean text score
+     * @param {number} history[].Gibberish_MildGibberish - Mild gibberish score
+     * @param {number} history[].Gibberish_Noise - Noise score
+     * @param {number} history[].Gibberish_WordSalad - Word salad score
+     * @param {number} history[].Education_Score - Educational content score
+     */
     function updateHistoryTable(history) {
-    const tbody = document.getElementById('historyTableBody');
-    tbody.innerHTML = history.map(entry => `
-        <tr class="border-b border-gray-100 hover:bg-gray-50 transition duration-150">
-            <td class="p-3 text-gray-700">${new Date(entry.Timestamp).toLocaleString()}</td>
-            <td class="p-3 text-gray-700">
-                <div class="max-w-xs truncate">${entry.InputText}</div>
-            </td>
-            <td class="p-3">
-                <span class="px-5 py-5 text-xs font-bold rounded-full ${getCategoryColor(entry.Gibberish_FinalCategory)}">
-                    ${entry.Gibberish_FinalCategory.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
-                </span>
-            </td>
-            <td class="p-3 text-gray-700">
-                <div class="space-y-1">
-                    ${Object.entries({
-                        Clean: entry.Gibberish_Clean,
-                        MildGibberish: entry.Gibberish_MildGibberish,
-                        Noise: entry.Gibberish_Noise,
-                        WordSalad: entry.Gibberish_WordSalad
-                    }).map(([category, score]) => `
-                        <div class="flex items-center">
-                            <div class="w-24 text-sm text-gray-600">${category}</div>
-                            <div class="flex-1">
-                                <div class="h-2 bg-gray-200 rounded-full">
-                                    <div class="h-full bg-indigo-600 rounded-full transition-all duration-500"
-                                         style="width: ${score * 100}%"></div>
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = history.map(entry => `
+            <tr class="border-b border-gray-100 hover:bg-gray-50 transition duration-150">
+                <td class="p-3 text-gray-700">${new Date(entry.Timestamp).toLocaleString()}</td>
+                <td class="p-3 text-gray-700">
+                    <div class="max-w-xs truncate">${entry.InputText}</div>
+                </td>
+                <td class="p-3">
+                    <span class="px-5 py-5 text-xs font-bold rounded-full ${getCategoryColor(entry.Gibberish_FinalCategory)}">
+                        ${entry.Gibberish_FinalCategory.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
+                    </span>
+                </td>
+                <td class="p-3 text-gray-700">
+                    <div class="space-y-1">
+                        ${Object.entries({
+                            Clean: entry.Gibberish_Clean,
+                            MildGibberish: entry.Gibberish_MildGibberish,
+                            Noise: entry.Gibberish_Noise,
+                            WordSalad: entry.Gibberish_WordSalad
+                        }).map(([category, score]) => `
+                            <div class="flex items-center">
+                                <div class="w-24 text-sm text-gray-600">${category}</div>
+                                <div class="flex-1">
+                                    <div class="h-2 bg-gray-200 rounded-full">
+                                        <div class="h-full bg-indigo-600 rounded-full transition-all duration-500"
+                                             style="width: ${score * 100}%"></div>
+                                    </div>
+                                </div>
+                                <div class="w-16 text-right text-sm font-medium text-gray-800">
+                                    ${(score * 100).toFixed(1)}%
                                 </div>
                             </div>
-                            <div class="w-16 text-right text-sm font-medium text-gray-800">
-                                ${(score * 100).toFixed(1)}%
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </td>
-            <td class="w-16 text-center text-sm font-medium text-gray-800">${(entry.Education_Score * 100).toFixed(1)}%</td>
-        </tr>
-    `).join('');
-}
+                        `).join('')}
+                    </div>
+                </td>
+                <td class="w-16 text-center text-sm font-medium text-gray-800">${(entry.Education_Score * 100).toFixed(1)}%</td>
+            </tr>
+        `).join('');
+    }
 
+    /**
+     * Returns the appropriate Tailwind CSS classes for styling category badges
+     * @param {string} category - The gibberish category
+     * @returns {string} Tailwind CSS classes for the badge
+     */
     function getCategoryColor(category) {
         const colors = {
             'Clean': 'bg-green-100 text-green-800',
@@ -324,10 +330,14 @@
         return colors[category] || 'bg-gray-100 text-gray-800';
     }
 
+    /**
+     * Updates the score chart with recent history data
+     * @param {Array} history - Array of analysis records
+     */
     function updateCharts(history) {
         const recentHistory = history.slice(-10).reverse();
         
-        // Update score chart
+        // Update score chart labels and datasets
         scoreChart.data.labels = recentHistory.map(entry => 
             new Date(entry.Timestamp).toLocaleTimeString()
         );
@@ -338,7 +348,7 @@
             entry.Education_Score * 100
         );
 
-        // Add input texts and gibberish classes to the datasets for tooltip display
+        // Add metadata for tooltip display
         scoreChart.data.datasets[0].inputTexts = recentHistory.map(entry => entry.InputText);
         scoreChart.data.datasets[1].inputTexts = recentHistory.map(entry => entry.InputText);
         scoreChart.data.datasets[0].gibberishClasses = recentHistory.map(entry => entry.Gibberish_FinalCategory);
@@ -346,6 +356,12 @@
         scoreChart.update();
     }
 
+    // Event Listeners
+
+    /**
+     * Handles form submission for text analysis
+     * Displays loading state, sends request to server, and updates UI with results
+     */
     document.getElementById('scoringForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const textInput = document.getElementById('textInput');
@@ -355,8 +371,11 @@
 
         if (!textInput.value.trim()) return;
 
+        // Show loading state
         loadingIndicator.classList.remove('hidden');
+        
         try {
+            // Send analysis request
             const response = await fetch('/score_text/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -365,7 +384,7 @@
 
             const data = await response.json();
             
-            // Update results display
+            // Update results display with score details
             scoreDetails.innerHTML = Object.entries(data.scores).map(([model, scores]) => `
                 <div class="bg-gray-50 p-4 rounded-lg">
                     <div class="font-medium text-gray-800 mb-2">${model} Analysis</div>
@@ -398,7 +417,9 @@
         }
     });
 
-    // Set default date range (last 7 days)
+    /**
+     * Sets the default date range for history filtering (last 7 days)
+     */
     function setDefaultDateRange() {
         const endDate = new Date();
         const startDate = new Date();
@@ -408,11 +429,11 @@
         document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
     }
 
-    // Add event listeners for date inputs
+    // Initialize date range filters
     document.getElementById('startDate').addEventListener('change', fetchHistory);
     document.getElementById('endDate').addEventListener('change', fetchHistory);
 
-    // Initialize with default date range
+    // Initial setup
     setDefaultDateRange();
     fetchHistory();
 </script>
