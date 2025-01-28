@@ -1,6 +1,6 @@
 # Text Analysis Dashboard
 
-A sophisticated text analysis service that provides real-time analysis of text content, detecting gibberish and evaluating educational content using state-of-the-art machine learning models.
+A basic python based web application that does real-time analysis of text content, detecting gibberish and evaluating educational content using machine learning models.
 
 ## Features
 
