@@ -20,7 +20,7 @@ A basic python based web application that does real-time analysis of text conten
 
 ## Technologies Used
 
-- **Backend**: FastAPI (Python 3.x)
+- **Backend**: FastAPI (Python 3.10)
 - **Machine Learning**: PyTorch, Hugging Face Transformers
 - **Database**: SQLite
 - **Frontend**: HTML/CSS/JavaScript
