@@ -32,8 +32,8 @@ A basic python based web application that does real-time analysis of text conten
 
 1. Clone the repository:
 ```bash
-git clone [repository-url]
-cd [repository-name]
+git clone https://github.com/ashishdlp/TrustWise
+cd TrustWise
 ```
 
 2. Create and activate a virtual environment:
