@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: text-analysis-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: text-analysis
+  template:
+    metadata:
+      labels:
+        app: text-analysis
+    spec:
+      containers:
+      - name: text-analysis
+        image: text-analysis-app
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - name: db-storage
+          mountPath: /app/data
+      volumes:
+      - name: db-storage
+        persistentVolumeClaim:
+          claimName: text-analysis-pvc
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: text-analysis-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: text-analysis
+  ports:
+    - port: 80
+      targetPort: 8000
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: text-analysis-pvc
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: text-analysis-pv
+spec:
+  capacity:
+    storage: 20Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /data/text-analysis
+    type: DirectoryOrCreate

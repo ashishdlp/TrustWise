@@ -53,7 +53,7 @@ def ensure_database():
     - Gibberish_FinalScore: The score for the final category
     - Education_Score: Educational content score
     """
-    conn = sqlite3.connect('text_analysis.db')
+    conn = sqlite3.connect('/app/data/text_analysis.db')
     cursor = conn.cursor()
     
     # Check if table exists, if not create it
@@ -139,7 +139,7 @@ def log_to_database(text: str, scores: dict):
     """
     ensure_database()  # Ensure database exists before logging
     
-    conn = sqlite3.connect('text_analysis.db')
+    conn = sqlite3.connect('/app/data/text_analysis.db')
     cursor = conn.cursor()
     
     now = datetime.now()
@@ -175,11 +175,11 @@ def log_to_database(text: str, scores: dict):
 async def startup_event():
     ensure_database()
 
-@app.get("/", include_in_schema=False)
+@app.get("/")
 async def read_index():
     return FileResponse("index.html")
 
-@app.post("/score_text/", include_in_schema=False)
+@app.post("/score_text/")
 async def score_text_endpoint(text_input: TextInput):
     """
     Endpoint for text analysis.
@@ -206,7 +206,7 @@ async def score_text_endpoint(text_input: TextInput):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/history", include_in_schema=False)
+@app.get("/history")
 async def get_scoring_history(start_date: str = None, end_date: str = None):
     """
     Retrieves analysis history within the specified date range.
@@ -222,7 +222,7 @@ async def get_scoring_history(start_date: str = None, end_date: str = None):
         HTTPException: 500 error if database query fails
     """
     try:
-        conn = sqlite3.connect('text_analysis.db')
+        conn = sqlite3.connect('/app/data/text_analysis.db')
         cursor = conn.cursor()
         
         query = "SELECT * FROM text_scores"
@@ -243,6 +243,6 @@ async def get_scoring_history(start_date: str = None, end_date: str = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Add a catch-all route for undefined endpoints
-@app.api_route("/{path_name:path}", methods=["GET", "POST", "PUT", "DELETE"], include_in_schema=False)
+@app.api_route("/{path_name:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def catch_all(path_name: str):
     raise HTTPException(status_code=404, detail="Resource not found")
